@@ -41,6 +41,7 @@ import {
 } from "./media";
 import { drawFrame } from "./renderer";
 import { createScore } from "./audio";
+import { DEFAULT_LOOK, LOOK_CONTROLS, type LookAdjustments } from "./look";
 
 export default function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -126,9 +127,14 @@ export default function App() {
     setResult(null);
     setPlaying(false);
     setTime(0.75);
-  }, [memories, settings]);
+  }, [memories]);
   useEffect(() => {
-    if (!scenes.length || exporting || !canvasRef.current) return;
+    setResult(null);
+    setPlaying(false);
+    setTime((previous) => Math.min(previous, settings.duration - 0.05));
+  }, [settings]);
+  useEffect(() => {
+    if (!scenes.length || exporting || result || !canvasRef.current) return;
     let canceled = false;
     let frameId = 0;
     const canvas = canvasRef.current;
@@ -171,7 +177,7 @@ export default function App() {
       canceled = true;
       cancelAnimationFrame(frameId);
     };
-  }, [scenes, settings, playing, exporting, playing ? null : time]);
+  }, [scenes, settings, playing, exporting, result, playing ? null : time]);
 
   useEffect(() => {
     sourceRef.current?.stop();
@@ -202,6 +208,13 @@ export default function App() {
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     if (!busy) setSettings((previous) => ({ ...previous, [key]: value }));
+  }
+  function updateLook(key: keyof LookAdjustments, value: number) {
+    if (!busy)
+      setSettings((previous) => ({
+        ...previous,
+        look: { ...previous.look, [key]: value },
+      }));
   }
   function togglePlay() {
     if (!memories.length || busy) return;
@@ -888,6 +901,58 @@ export default function App() {
                   ))}
                 </div>
               </div>
+              <details className="look-adjustments" open>
+                <summary>
+                  色と光を調整 <ChevronDown size={13} />
+                </summary>
+                <p className="look-description">
+                  映像全体に反映されます。白ボケで、白い光がにじむような余韻を。
+                </p>
+                <div className="look-sliders">
+                  {LOOK_CONTROLS.map((control) => (
+                    <div className="look-control" key={control.key}>
+                      <div className="look-label">
+                        <label htmlFor={`look-${control.key}`}>
+                          {control.label}
+                        </label>
+                        <output htmlFor={`look-${control.key}`}>
+                          {settings.look[control.key] > 0 && control.min < 0
+                            ? "+"
+                            : ""}
+                          {settings.look[control.key]}
+                        </output>
+                      </div>
+                      <input
+                        id={`look-${control.key}`}
+                        type="range"
+                        min={control.min}
+                        max={control.max}
+                        step="1"
+                        value={settings.look[control.key]}
+                        onChange={(event) =>
+                          updateLook(control.key, Number(event.target.value))
+                        }
+                        style={
+                          {
+                            "--look-progress": `${((settings.look[control.key] - control.min) / (control.max - control.min)) * 100}%`,
+                          } as React.CSSProperties
+                        }
+                      />
+                      <div className="look-endpoints">
+                        <span>{control.low}</span>
+                        <span>{control.high}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="look-reset"
+                  onClick={() => updateSetting("look", { ...DEFAULT_LOOK })}
+                >
+                  <RotateCcw size={12} /> 色と光を初期値に戻す
+                </button>
+              </details>
               <div className="setting-group compact-group">
                 <label htmlFor="music">思い出に添える音</label>
                 <div className="select-wrap">

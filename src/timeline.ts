@@ -1,3 +1,5 @@
+import { DEFAULT_LOOK, type LookAdjustments } from "./look";
+
 export type Memory = {
   id: string;
   name: string;
@@ -17,6 +19,7 @@ export type Settings = {
   order: "mixed" | "selected";
   endingId: string;
   grain: boolean;
+  look: LookAdjustments;
 };
 export type Scene = {
   memory: Memory;
@@ -32,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   order: "mixed",
   endingId: "",
   grain: true,
+  look: { ...DEFAULT_LOOK },
 };
 export function dimensions(
   ratio: Settings["ratio"],

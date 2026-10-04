@@ -1,5 +1,6 @@
 import { getMedia, seekVideo } from "./media";
 import { sceneAt, type Scene, type Settings } from "./timeline";
+import { applyLook } from "./look";
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 export async function drawFrame(
   canvas: HTMLCanvasElement,
@@ -25,12 +26,7 @@ export async function drawFrame(
     const zoom = 1.025 + clamp(local / (target.end - target.start)) * 0.065;
     const scale = Math.max(canvas.width / width, canvas.height / height) * zoom;
     ctx!.globalAlpha = alpha;
-    ctx!.filter =
-      settings.mood === "nostalgia"
-        ? "sepia(24%) saturate(80%) contrast(94%)"
-        : settings.mood === "dream"
-          ? "saturate(75%) contrast(86%) blur(0.8px)"
-          : "none";
+    ctx!.filter = "none";
     ctx!.drawImage(
       media,
       (canvas.width - width * scale) / 2,
@@ -52,6 +48,7 @@ export async function drawFrame(
   } else await paint(scene, elapsed, 1);
   ctx.globalAlpha = 1;
   ctx.filter = "none";
+  applyLook(canvas, ctx, settings.mood, settings.look);
   const vignette = ctx.createRadialGradient(
     canvas.width / 2,
     canvas.height / 2,
@@ -61,7 +58,7 @@ export async function drawFrame(
     canvas.width * 0.72,
   );
   vignette.addColorStop(0, "transparent");
-  vignette.addColorStop(1, "rgba(8, 7, 5, 0.6)");
+  vignette.addColorStop(1, `rgba(8, 7, 5, ${settings.look.vignette / 100})`);
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (settings.grain) {
